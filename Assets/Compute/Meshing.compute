@@ -1,0 +1,70 @@
+#pragma kernel Density
+#include "/Include/Noise.compute"
+
+Buffer<int> points;
+AppendStructuredBuffer<int2> polygons;
+
+int sizeW;
+int sizeH;
+int sizeD;
+
+int sizeX;
+int sizeY;
+int sizeZ;
+
+
+static const int3 NormalTable[6] = {
+half3(0,0,-1),
+half3(-1,0,0),
+half3(0,-1,0),
+
+half3(0,0,1),
+half3(1,0,0),
+half3(0,1,0)
+};
+
+static const int FaceTable[6] = {
+1,16,192,2048,20480,196608
+};
+
+
+[numthreads(1, 1, 1)]
+void Density (int3 id : SV_DispatchThreadID)
+{
+     
+     
+     id += int3(sizeX + 1,sizeY + 1,sizeZ + 1);
+     int WH = sizeW * sizeH;
+     int ind = id.x + id.y * sizeW + id.z * WH;
+
+     if(points[ind] != 0)
+  
+        {
+
+        int2 block = int2(0,0);
+        int numBl = 0;
+        
+            for(int i = 0; i != 6; i++)
+            {
+               // face = GetFace(id,i);
+             
+                if((points[ind+NormalTable[i].x + NormalTable[i].y * sizeW + NormalTable[i].z * WH] == 0/* && 
+                (id.x + NormalTable[i].x>= -1 && id.x + NormalTable[i].x< sizeW &&  
+                 id.y + NormalTable[i].y>= -1 && id.y + NormalTable[i].y< sizeH &&  
+                 id.z + NormalTable[i].z>= -1 && id.z + NormalTable[i].z< sizeD)*/))
+                {
+                
+                block.y |= FaceTable[i];
+                numBl = 1;
+                }
+            }
+                
+        if(numBl != 0)
+        {
+        block.x =  (id.x) | (id.y) << 10 | (id.z) << 20; 
+        polygons.Append(block);
+        }
+     
+     }
+     
+}

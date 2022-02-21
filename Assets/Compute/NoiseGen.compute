@@ -1,0 +1,47 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Noise3D
+#include "/Include/Noise.compute"
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+RWStructuredBuffer<float> Noise;
+float PosX;
+float PosY;
+float PosZ;
+
+float SizeX;
+float SizeY;
+float SizeZ;
+
+float Frequency;
+float Octaves;
+float Persistence;
+
+
+float getNoise(float3 pos, int octaves, float persistence, float frequency) {
+
+    float total = 0;
+    float amplitude = 0.1;
+    float maxValue = 1;  // Used for normalizing result to 0.0 - 1.0
+    for(int i=0;i<octaves;i++) {
+        total += snoise_grad(pos * frequency) * amplitude;
+        
+        maxValue += amplitude;
+        
+        amplitude *= persistence;
+        frequency *= 2;
+    }
+    
+    return total/maxValue;
+}
+
+
+
+[numthreads(1,1,1)]
+void Noise3D (uint3 id : SV_DispatchThreadID)
+{
+    
+
+    Noise[id.x+id.y*SizeX+id.z*SizeX*SizeY] = getNoise(float3(PosX+id.x, PosY+id.y, PosZ+id.z), Octaves, Persistence, Frequency);
+}
